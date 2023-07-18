@@ -1,30 +1,27 @@
 package main
 
 import (
-	"app/controller"
-	"fmt"
+	"log"
 	"net/http"
+
+	"app/api"
+	"app/config"
+	"app/storage/postgres"
 )
 
 func main() {
-	http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			controller.Get_Users(w, r)
-		} else if r.Method == "PUT" {
-			controller.Update_User(w, r)
-		} else if r.Method == "DELETE" {
-			controller.Delete_User(w, r)
-		} else if r.Method == "POST" {
-			controller.Create_User(w, r)
-		}
-	})
+	cfg := config.Load()
 
-	fmt.Println("Listening 4000 port...")
+	pgconn, err := postgres.NewConnectionPostgres(&cfg)
 
-	// http://localhost:4000/user
-
-	err := http.ListenAndServe("localhost:4000", nil)
 	if err != nil {
-		panic(err)
+		log.Printf("Not Have Connection with Postgres: %+v", err)
+	}
+	api.NewApi(&cfg, pgconn)
+
+	log.Println("Listening....", cfg.ServerHost+cfg.HTTPPort)
+
+	if err := http.ListenAndServe(cfg.ServerHost+cfg.HTTPPort, nil); err != nil {
+		panic("server does not run: " + err.Error())
 	}
 }
